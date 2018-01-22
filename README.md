@@ -57,7 +57,7 @@ Scripts may have multiple tags
   + Gimmick
   + Beta
 
-Tags should be given conservative, an in-game modifier with just settings on the homepage shouldn't also be 'out-game'. A script that puts a statistic on every ball shouldn't be 'visual', because the purpose of the script is being informative. People won't click 'visual' if they want to get statistics scrits. 'Spectating' tag should only be given too scripts specifically made for speccers, not to visual enhancing scripts that also happen look nice while spectating.
+Tags should be given conservative, an in-game modifier with just settings on the homepage shouldn't also be 'out-game'. A script that puts a statistic on every ball shouldn't be 'visual', because the purpose of the script is being informative. People won't click 'visual' if they want to get statistics scrits. 'Spectating' tag should only be given to scripts specifically made for speccers, not to visual enhancing scripts that also happen to look nice while spectating.
 
 ### Hosting options
 **reddit**: scripts should be posted to /r/ModFather in a certain format. They can be edited by only the original poster though :/ upvotes can just be a reddit plugin (maybe). Installs? No idea
@@ -69,15 +69,24 @@ Tags should be given conservative, an in-game modifier with just settings on the
 **"Real" database**: (Payd) hosting of a simple database with an accessible API
 
 ## 2. Script or extension
-New tab on homepage.
-Fetch data from whatever database is used
-Checks if tamper installed, display an install message if not
-Somehow checks what scripts are installed, mark them
-Somehow verifies who is logged in, for voting and install counts
+New tab on homepage.  
+Fetch data from whatever database is used  
+Checks if tamper installed, display an install message if not  
+Somehow checks what scripts are installed, mark them  
+Somehow verifies who is logged in, for voting and install counts  
 
-### Verify user
-Could just assume the user doesn't hack, just copy profileId from profile button.
+### How to verify a user
+We could just assume the user doesn't hack, we can just copy profileId from profile button. Downsides: a hacker could give a script a thousend upvotes/installs by spoofing his profileId.
 
 Only real way is to:
-Ask a server for a verification of "player",
-Server looks at corresponding profile and comes up with a random (owned) flair. 
+
+1. let ModFather send a verification request to our server
+2. The server comes up with a random flair that the user should select
+3. ModFather selects that flair in the background
+4. The server can check if the flair has changed, if so, the user is verified.
+5. (ModFather chances the flair back to what it was)
+
+This should happen within seconds, so that a hacker can't manipulate others to select a certain flair. And even if so, it'll be way too difficult for the hacker to significantly increase a mods upvote/install count.
+
+### How to test what scripts are installed?
+?
