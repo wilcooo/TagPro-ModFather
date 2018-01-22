@@ -1,6 +1,6 @@
 # TagPro ModFather
 
-## #Basic idea
+### Basic idea
  1. A database, hosted somewhere, that stores links to all userscripts & extensions of TagPro.
  2. A userscript that lists them all on the servers’ websites.
 
