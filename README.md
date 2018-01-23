@@ -2,12 +2,12 @@
 
 ### Basic idea
  1. A database, hosted somewhere, that stores links to all userscripts & extensions of TagPro.
- 2. A userscript that lists them all on the servers’ websites.
+ 2. A userscript and/or extension that lists them all on the servers’ websites.
 
 
 ### Extra
-(a) A system for userscript authors and/or moderators of ModFather to submit new scripts, and update/edit the data.
-(b) A system to count installs and upvotes, and maybe somehow keeps track of which scripts are installed.
+(a) A system for userscript authors and/or moderators of ModFather to submit new scripts, and update/edit the data.  
+(b) A system to count installs and upvotes, and maybe somehow keeps track of which scripts are installed.  
 (c) Reviews by users, and a report system
 
 ## 1. The database
@@ -35,10 +35,12 @@ Stores the following data for each mod. Bold means required, the rest in order o
   + Reddit post link
   + GitHub repo/other source link
 
-These two lists won't be public, but are needed to count the number of installs and upvotes.
+These two lists are needed to count the number of installs and upvotes.
 
   + Installed by who [list of (hashed?) TagPro profile id’s]
   + Upvoted by who [list of (hashed?) TagPro profile id’s]
+
+When hashed, it's impossible to get a full list of players that have upvoted/installed a script. But one can check if a friend has upvoted/installed it. This makes it possible to have a section "Your friends have recently upvoted/installed these scripts"
 
 ### Tags
 Scripts may have multiple tags
@@ -60,7 +62,7 @@ Scripts may have multiple tags
 Tags should be given conservative, an in-game modifier with just settings on the homepage shouldn't also be 'out-game'. A script that puts a statistic on every ball shouldn't be 'visual', because the purpose of the script is being informative. People won't click 'visual' if they want to get statistics scrits. 'Spectating' tag should only be given to scripts specifically made for speccers, not to visual enhancing scripts that also happen to look nice while spectating.
 
 ### Hosting options
-**reddit**: scripts should be posted to /r/ModFather in a certain format. They can be edited by only the original poster though :/ upvotes can just be a reddit plugin (maybe). Installs? No idea
+**reddit**: scripts should be posted to /r/ModFather in a certain format. They can be edited by only the original poster though :/ upvotes can just be a reddit plugin (maybe). Counting installs/upvotes? No idea
 
 **reddit wiki**: Anyone can edit, there's karma requirement, moderator approvement.. It'll feel like doing double work, with the regular wiki also existing. Upvotes and installs? No idea
 
@@ -68,12 +70,16 @@ Tags should be given conservative, an in-game modifier with just settings on the
 
 **"Real" database**: (Payd) hosting of a simple database with an accessible API
 
+I think we should go for a Google Sheet based database, because we don't need anything special, and it's easy/clear to work with. We should make a backup though in case the hosting Google account gets deleted somehow.
+
 ## 2. Script or extension
-New tab on homepage.  
-Fetch data from whatever database is used  
+New tab on homepage (next to `TagPro`, `Groups`, `Leaderboards` etc.)  
+Fetch data from whatever database is used  
 Checks if tamper installed, display an install message if not  
-Somehow checks what scripts are installed, mark them  
-Somehow verifies who is logged in, for voting and install counts  
+Somehow checks what scripts are installed, mark them as 'installed' and send the data to the database
+Also send upvotes to the database  
+Somehow verifies who is logged in, for voting and install counts  
+
 
 ### How to verify a user
 We could just assume the user doesn't hack, we can just copy profileId from profile button. Downsides: a hacker could give a script a thousend upvotes/installs by spoofing his profileId.
@@ -88,5 +94,12 @@ Only real way is to:
 
 This should happen within seconds, so that a hacker can't manipulate others to select a certain flair. And even if so, it'll be way too difficult for the hacker to significantly increase a mods upvote/install count.
 
+Server can be a Google Apps script.
+
 ### How to test what scripts are installed?
-?
+???
+
+### How to check if Tampermonkey is installed?
+???
+
+If Tampermonkey is not installed, there should also be a button `I've installed another userscript manager`.
