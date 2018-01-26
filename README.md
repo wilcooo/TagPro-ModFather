@@ -8,7 +8,8 @@
 ### Extra
 (a) A system for userscript authors and/or moderators of ModFather to submit new scripts, and update/edit the data.  
 (b) A system to count installs and upvotes, and maybe somehow keeps track of which scripts are installed.  
-(c) Reviews by users, and a report system
+(c) Reviews by users, and a report system  
+(d) A way for mods to show their settings inside ModFather, so that all mods' options are customizable in a central place.  
 
 ## 1. The database
 Stores the following data for each mod. Bold means required, the rest in order of recommendation. (I would *at least* include everything up to the image)
