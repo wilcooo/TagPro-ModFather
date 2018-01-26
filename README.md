@@ -98,9 +98,9 @@ This should happen within seconds, so that a hacker can't manipulate others to s
 Server can be a Google Apps script.
 
 ### How to test what scripts are installed?
-???
+The same way that GreasyFork does this. Something with `window.external.Tampermonkey` or something magic.
 
 ### How to check if Tampermonkey is installed?
-???
+Just like GreasyFork
 
 If Tampermonkey is not installed, there should also be a button `I've installed another userscript manager`.
