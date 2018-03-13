@@ -43,6 +43,15 @@ These two lists are needed to count the number of installs and upvotes.
 
 When hashed, it's impossible to get a full list of players that have upvoted/installed a script. But one can check if a friend has upvoted/installed it. This makes it possible to have a section "Your friends have recently upvoted/installed these scripts"
 
+### Interaction with the database
+The following things should be able via forms or whatever
+
++ Submit a new author
++ Submit a new mod
++ Submit an update to a mod
++ Edit info of a mod
++ Edit info of an author
+
 ### Tags
 Scripts may have multiple tags
 
