@@ -2,7 +2,7 @@
 // @name          TagPro ModFather
 // @description   Shows available mods on the TagPro website, Notifies when new Mods are released, And more...
 // @author        Ko
-// @version       0.2.beta
+// @version       0.2.1.beta
 // @match         http://*.koalabeast.com/*
 // @match         greasyfork.org/modfather
 // @supportURL    https://www.reddit.com/message/compose/?to=Wilcooo
@@ -20,6 +20,13 @@
 // ==/UserScript==
 
 const DATABASE_URL = "https://script.google.com/macros/s/AKfycbybe8e37-gpfe3cqN53UxZbvqVdysjFfdN5e1pDeqeJtAvnjaI/exec";
+
+const DASHBOARD_URL = {
+    'chrome' : "chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/options.html#nav=dashboard",
+    'moz' : "moz-extension://b12b5c7e-21b5-4eb0-b3f7-9d47696b73a8/options.html#nav=dashboard",
+    'todo' : "add other browsers"
+};
+
 
 
 function prepareDatabase(data) {
@@ -201,13 +208,11 @@ if (window.location.hostname.toLowerCase() == 'greasyfork.org' && window.locatio
 
 
 
-cs = function checkScripts(){
+function greasyFetch(done=null){
+    GM_setValue('TampermonkeyInstalled',false);
     var gf_tab = GM_openInTab('https://greasyfork.org/modfather',true);
-    gf_tab.onclose = function(){
-        // The installe scripts should now be available
-        console.log(  GM_getValue('installedMods') );
-    };
-};
+    gf_tab.onclose = done;
+}
 
 
 
@@ -229,6 +234,9 @@ if (navBar) {         // If you are on a page with the navBar (I guess everywher
 }
 
 
+var MF_content;
+
+
 
 // If we are on the /ModFather page (after clicking on the button)
 if (window.location.pathname.toLowerCase() == '/modfather') {
@@ -242,7 +250,7 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
 
     // Add ModFather content to the page
 
-    for (var MF_content of document.body.children) if (MF_content.classList.contains('container')) break;
+    for (MF_content of document.body.children) if (MF_content.classList.contains('container')) break;
 
     MF_content.innerHTML = `<div class="row"><div class="col-md-12">  <h1 class="header-title">ModFather</h1>  <ul id="MF_tablist" class="tab-list"></ul>  <div id="MF_tabcontent" class="tab-content">`;
 
@@ -318,6 +326,7 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
         for (var mod of database.MODS) {
 
             mod.LIST = document.createElement('tr');
+            mod.LIST.style.height = '50px';
 
             mod.LIST.innerHTML += '<td> <img width=24 height=24 src=' + mod.ICON + '>';
             mod.LIST.innerHTML += '<td> ? ';
@@ -333,11 +342,56 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
             for (var author of mod.AUTHORS)
                 mod.LIST.lastChild.innerHTML += '<span class="sort author-filter" onclick=MF_setAuthorFilter("' + author.NAME + '")><a>' + author.NAME + '</a></span> ';
 
-            mod.LIST.innerHTML += '<td><a href="' +mod.LINK+ '"> install!';
+            mod.LIST.innerHTML += '<td>';
+
+            mod.BUTTON = document.createElement('a');
+            mod.BUTTON.setAttribute('data-install-link', mod.LINK);
+            mod.BUTTON.setAttribute('data-name', mod.NAME);
+            mod.BUTTON.className = "MF-install";
+
+            mod.LIST.lastChild.appendChild( mod.BUTTON );
+
+            mod.BUTTON.onclick = function(click){
+                if ( [...click.srcElement.classList].includes('MF-install') ) {
+                    console.log('INSTALLING', click.srcElement.getAttribute('data-install-link'));
+                    var installer = GM_openInTab(click.srcElement.getAttribute('data-install-link'),true);
+                    installer.close();
+                }
+
+                else if ( [...click.srcElement.classList].includes('MF-remove') ) {
+                    console.log('REMOVING', click.srcElement.getAttribute('data-name'));
+
+                    if (GM_getValue('TampermonkeyInstalled') && DASHBOARD_URL[getBrowser()] ) {
+
+                        if (confirm('Click on the bin icon next to the script(s) that you want to remove.\n\nPlease close the tab whenever you are ready to get back.')) {
+                            var TM_dashboard = GM_openInTab( DASHBOARD_URL[getBrowser()] , false);
+
+                            displayMessage('Welcome back! Click this bubble to redetect which mods are installed/removed','msg_backFromRemove',function(){
+                                document.getElementById('msg_backFromRemove').remove();
+                                update_installed();
+                            });
+                        }
+                    } else if (GM_getValue('TampermonkeyInstalled')) {
+
+                        displayMessage('I haven\'t added support for your browser yet, sorry! <p> Go to Tampermonkey\'s <i>dashboard</i> to remove scripts. You can usually get there by clicking its <img onclick="MF_wrongIcon()" src="http://tampermonkey.net/images/icon_grey.png" height=24> icon. <p> Then click this bubble to redetect which mods are installed/removed','msg_backFromRemove',function(){
+                            document.getElementById('msg_backFromRemove').remove();
+                            update_installed();
+                        });
+                    } else {
+
+                        displayMessage('Tampermonkey is not detected. Go to your userscript managers\' dashboard to remove scripts. Then click this bubble to redetect which mods are installed/removed','msg_backFromRemove',function(){
+                            document.getElementById('msg_backFromRemove').remove();
+                            update_installed();
+                        });
+                    }
+                }
+            };
 
         }
 
         update_sort_filter();
+
+        update_installed();
     });
 
 
@@ -410,9 +464,40 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
         });
     };
 
+    var update_installed = function() {
 
+        greasyFetch(function(){
 
+            if (!GM_getValue('TampermonkeyInstalled',false) && !GM_getValue('otherManager',false)) {
 
+                displayMessage('Hey, I smell that you haven\'t installed <b>Tampermonkey</b> (or it\'s disabled). Without such a <i>userscript manager</i>, none of the mods on this page will work! <p> <li> <b><a href="https://tampermonkey.net" target="_blank">Install Tampermonkey</a></b> <li>Enable Tampermonkey by clicking its <img onclick="MF_wrongIcon()" src="http://tampermonkey.net/images/icon_grey.png" height=24> icon and <i>Disabled</i>  <li> click <b><a style="cursor:pointer" onclick=MF_otherManager()>here</a></b> if you surely have an (other) userscript manager.',
+                              'Tampermonkey-Message');
+
+            } else if (GM_getValue('TampermonkeyInstalled',false)) GM_setValue('otherManager',true);
+
+            getDatabase.then(function(database) {
+                for ( var m in GM_getValue('installedMods',{}) ) {
+                    var mod = database.MODS[m];
+                    mod.INSTALLED = true;
+
+                    mod.BUTTON.className = 'MF-remove';
+                }
+            });
+        });
+    };
+
+    MF_otherManager = function() {
+
+        if (confirm('Are you sure? Tampermonkey is the only supported manager. With another one it isn\'t possible to see which scripts are installed, and upvotes won\'t work. \n\n Click "Ok" to hide the warning forever. You can still install Tampermonkey anytime if you change your mind.')) {
+            GM_setValue('otherManager', true);
+
+            document.getElementById('Tampermonkey-Message').remove();
+        }
+    };
+
+    MF_wrongIcon = function() {
+        alert('No, not this icon, but the one in the top-right. If you don\'t see it you\'ll probably just need to install Tampermonkey');
+    };
 
 
     tile_content.innerHTML += '<div class="row">  <div class="col-xs-12"> <p class="explanation-bubble"> Customize TagPro by installing mods. <span id="sort-options-tile" class="pull-right"> Sort by ';
@@ -449,7 +534,22 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
     styleSheet.insertRule(".explanation-bubble { background: #383838; border-radius: 3px; border: 1px solid #3c3c3c; padding: 10px; margin-top: 0; }");
     styleSheet.insertRule(".sort { cursor: pointer }");
 
+    // The install/remove buttons
+    styleSheet.insertRule(".MF-install { font-size: 90%; width: 90px; height: 24px; text-align: center; cursor: pointer; display: inline-block; font-weight: bold; color: #222; background: #CDDC39; border: 1px solid #827717; box-shadow: 0 3px #827717; border-radius: 3px; text-transform: upper-case; }");
+    styleSheet.insertRule(".MF-install:after { content: \"INSTALL\"; }");
+    styleSheet.insertRule(".MF-install:hover, .MF-install:focus { color: #222; background: #C0D433; }");
+    styleSheet.insertRule(".MF-remove { font-size: 90%; width: 90px; height: 24px; text-align: center; cursor: pointer; display: inline-block; font-weight: bold; color: #fff; background: #0E8AE0; border: 1px solid #095C96; box-shadow: 0 3px #095C96; border-radius: 3px; text-transform: upper-case; }");
+    styleSheet.insertRule(".MF-remove:after { content: \"✓\"; }");
+    styleSheet.insertRule(".MF-remove:hover, .MF-remove:focus { background: #DC8B39; color: #C32C27; border: 1px solid #834D18; box-shadow: 0 3px #834D18; }");
+    styleSheet.insertRule(".MF-remove:hover:after .MF-remove:focus:after { content: \"REMOVE\" ; }");
+
+
 }
+
+
+
+
+
 
 
 
@@ -470,4 +570,31 @@ function selectTab(tab = window.location.hash.substr(1)) {
         console.log('ModFather: Tab not found:',tab);
         if (tab != 'list') selectTab('list');
     }
+}
+
+
+
+function displayMessage(innerHTML,id='',onclick=null) {
+
+    var column = document.createElement('div');
+    column.className = "col-md-8 col-md-offset-2";
+    column.id = id;
+
+    if (onclick) {
+        column.onclick = onclick;
+        column.style.cursor = 'pointer';
+    }
+
+    var message =  document.createElement('div');
+    message.className = "msg";
+    message.style.marginBottom = 20;
+    message.innerHTML = innerHTML;
+    message.style.color = "#A2A9FF";
+    message.style.background = "#21216B";
+    message.style.borderColor = "#0B0EBD";
+
+    column.appendChild(message);
+
+    MF_content.insertBefore( column, MF_content.firstChild );
+
 }
