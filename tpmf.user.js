@@ -2,7 +2,7 @@
 // @name          TagPro ModFather
 // @description   Shows available mods on the TagPro website, Notifies when new Mods are released, And more...
 // @author        Ko
-// @version       0.2.1.beta
+// @version       0.2.2.beta
 // @match         http://*.koalabeast.com/*
 // @match         greasyfork.org/modfather
 // @supportURL    https://www.reddit.com/message/compose/?to=Wilcooo
@@ -23,9 +23,32 @@ const DATABASE_URL = "https://script.google.com/macros/s/AKfycbybe8e37-gpfe3cqN5
 
 const DASHBOARD_URL = {
     'chrome' : "chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/options.html#nav=dashboard",
-    'moz' : "moz-extension://b12b5c7e-21b5-4eb0-b3f7-9d47696b73a8/options.html#nav=dashboard",
-    'todo' : "add other browsers"
+    'firefox' : "moz-extension://b12b5c7e-21b5-4eb0-b3f7-9d47696b73a8/options.html#nav=dashboard",
+    'edge' : "ms-browser-extension://edgetampermonkeynet_JanBiniokTampermonkey_gz80c7jhhn2hw/options.html#nav=dashboard",
+    'safari' : "safari-extension://net.tampermonkey.safari-G3XV72R5TC/b2bc49bd/options.html#nav=dashboard",
+    'opera' : "chrome-extension://mfdhdgbonjidekjkjmjaneanmdmpmidf/options.html#nav=dashboard",
 };
+
+
+function getBrowser() {
+
+    if (window.chrome && window.chrome.webstore) return 'chrome';
+
+    if (/edge/i.test(navigator.userAgent)) return 'edge';
+
+    if (/constructor/i.test(window.HTMLElement)) return 'safari';
+
+    if (/opera|opr/i.test(navigator.userAgent)) return 'opera';
+
+    if (window.sidebar) return 'firefox';
+
+    if(!GM_getValue('alertedWeirdBrowser',false)) {
+        GM_setValue('alertedWeirdBrowser',true);
+        alert('Hey there, I smell that you are using a weird broser. Uninstalling will have to be done manually.\n\nWill you please send a message to Ko (via the "information" tab) with the name of your browser? I might be able to add support for your browser. Thanks!\n\nYou won\'t see this message in the future :)');
+    }
+
+    return '';
+}
 
 
 
@@ -319,7 +342,7 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
 
     list_thead.innerHTML = '<tr> <th title=Icon>  <th title=Installs> I  <th title=Upvotes> U  <th> Name  <th> Summary  <th> Tags  <th> Authors  <th>';
 
-    list_tbody.innerHTML = '<td colspan=100 align=center> <div class=spinner> <div class=spinner-item></div> <div class=spinner-item></div> <div class=spinner-item></div> <div class=spinner-item></div>';
+    list_tbody.innerHTML = '<td colspan=999 align=center> <div class=spinner> <div class=spinner-item></div> <div class=spinner-item></div> <div class=spinner-item></div> <div class=spinner-item></div>';
 
     getDatabase.then(function(database) {
 
@@ -347,15 +370,24 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
             mod.BUTTON = document.createElement('a');
             mod.BUTTON.setAttribute('data-install-link', mod.LINK);
             mod.BUTTON.setAttribute('data-name', mod.NAME);
-            mod.BUTTON.className = "MF-install";
+            mod.BUTTON.className = "MF-loading";
+            mod.BUTTON.innerHTML = "<div class=spinner> <div class=spinner-item></div> <div class=spinner-item></div> <div class=spinner-item></div>";
 
             mod.LIST.lastChild.appendChild( mod.BUTTON );
 
             mod.BUTTON.onclick = function(click){
-                if ( [...click.srcElement.classList].includes('MF-install') ) {
+                if ([...click.srcElement.classList].includes('MF-install') ||
+                    [...click.srcElement.classList].includes('MF-update') ||
+                    [...click.srcElement.classList].includes('MF-retry')) {
                     console.log('INSTALLING', click.srcElement.getAttribute('data-install-link'));
+
+                    click.srcElement.className = "MF-loading";
                     var installer = GM_openInTab(click.srcElement.getAttribute('data-install-link'),true);
                     installer.close();
+
+                    click.srcElement.INSTALLING = true;
+
+                    window.addEventListener("focus", update_installed, {once:true});
                 }
 
                 else if ( [...click.srcElement.classList].includes('MF-remove') ) {
@@ -364,12 +396,14 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
                     if (GM_getValue('TampermonkeyInstalled') && DASHBOARD_URL[getBrowser()] ) {
 
                         if (confirm('Click on the bin icon next to the script(s) that you want to remove.\n\nPlease close the tab whenever you are ready to get back.')) {
-                            var TM_dashboard = GM_openInTab( DASHBOARD_URL[getBrowser()] , false);
+                            let TM_dashboard = GM_openInTab( DASHBOARD_URL[getBrowser()] , false);
 
-                            displayMessage('Welcome back! Click this bubble to redetect which mods are installed/removed','msg_backFromRemove',function(){
+                            TM_dashboard.onclose = function(){
                                 document.getElementById('msg_backFromRemove').remove();
                                 update_installed();
-                            });
+                            };
+
+                            displayMessage('Welcome back! Click this bubble to redetect which mods are installed/removed','msg_backFromRemove',TM_dashboard.onclose);
                         }
                     } else if (GM_getValue('TampermonkeyInstalled')) {
 
@@ -381,6 +415,36 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
 
                         displayMessage('Tampermonkey is not detected. Go to your userscript managers\' dashboard to remove scripts. Then click this bubble to redetect which mods are installed/removed','msg_backFromRemove',function(){
                             document.getElementById('msg_backFromRemove').remove();
+                            update_installed();
+                        });
+                    }
+                }
+
+                else if ( [...click.srcElement.classList].includes('MF-enable') ) {
+                    console.log('ENABLING', click.srcElement.getAttribute('data-name'));
+
+                    if (GM_getValue('TampermonkeyInstalled') && DASHBOARD_URL[getBrowser()] ) {
+
+                        if (confirm('Switch the slider next to the script(s) that you want to enable/disable.\n\nPlease close the tab whenever you are ready to get back.')) {
+                            let TM_dashboard = GM_openInTab( DASHBOARD_URL[getBrowser()] , false);
+
+                            TM_dashboard.onclose = function(){
+                                document.getElementById('msg_backFromEnable').remove();
+                                update_installed();
+                            };
+
+                            displayMessage('Welcome back! Click this bubble to redetect which mods are enabled/disabled','msg_backFromEnable',TM_dashboard.onclose);
+                        }
+                    } else if (GM_getValue('TampermonkeyInstalled')) {
+
+                        displayMessage('I haven\'t added support for your browser yet, sorry! <p> Go to Tampermonkey\'s <i>dashboard</i> to enable scripts. You can usually get there by clicking its <img onclick="MF_wrongIcon()" src="http://tampermonkey.net/images/icon_grey.png" height=24> icon. <p> Then click this bubble to redetect which mods are enabled/disabled','msg_backFromEnable',function(){
+                            document.getElementById('msg_backFromEnable').remove();
+                            update_installed();
+                        });
+                    } else {
+
+                        displayMessage('Tampermonkey is not detected. Go to your userscript managers\' dashboard to enable scripts. Then click this bubble to redetect which mods are enabled/disable','msg_backFromEnable',function(){
+                            document.getElementById('msg_backFromEnable').remove();
                             update_installed();
                         });
                     }
@@ -480,8 +544,25 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
                     var mod = database.MODS[m];
                     mod.INSTALLED = true;
 
-                    mod.BUTTON.className = 'MF-remove';
+                    if(mod.BUTTON.INSTALLING) mod.BUTTON.className = 'MF-retry';
+                    else mod.BUTTON.className = 'MF-remove';
                 }
+
+                var installedMods = GM_getValue('installedMods',{});
+
+                database.MODS.forEach(function(mod,m){
+                    if (installedMods[m] && installedMods[m].installed) {
+
+                        if (/*installedMods[m].version < mod.VERSION   TODO: VERSION CHECK*/false) mod.BUTTON.className = 'MF-update';
+                        else if ( installedMods[m].enabled) mod.BUTTON.className = 'MF-remove';
+                        else mod.BUTTON.className = 'MF-enable';
+                    }
+                    else if (mod.BUTTON.INSTALLING) {
+                        mod.BUTTON.className = 'MF-retry';
+                        mod.BUTTON.INSTALLING = false;
+                    }
+                    else mod.BUTTON.className = 'MF-install';
+                });
             });
         });
     };
@@ -534,20 +615,41 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
     styleSheet.insertRule(".explanation-bubble { background: #383838; border-radius: 3px; border: 1px solid #3c3c3c; padding: 10px; margin-top: 0; }");
     styleSheet.insertRule(".sort { cursor: pointer }");
 
-    // The install/remove buttons
-    styleSheet.insertRule(".MF-install { font-size: 90%; width: 90px; height: 24px; text-align: center; cursor: pointer; display: inline-block; font-weight: bold; color: #222; background: #CDDC39; border: 1px solid #827717; box-shadow: 0 3px #827717; border-radius: 3px; text-transform: upper-case; }");
-    styleSheet.insertRule(".MF-install:after { content: \"INSTALL\"; }");
-    styleSheet.insertRule(".MF-install:hover, .MF-install:focus { color: #222; background: #C0D433; }");
-    styleSheet.insertRule(".MF-remove { font-size: 90%; width: 90px; height: 24px; text-align: center; cursor: pointer; display: inline-block; font-weight: bold; color: #fff; background: #0E8AE0; border: 1px solid #095C96; box-shadow: 0 3px #095C96; border-radius: 3px; text-transform: upper-case; }");
-    styleSheet.insertRule(".MF-remove:after { content: \"✓\"; }");
+    // The install/remove/etc. buttons
+    styleSheet.insertRule(".MF-install, .MF-remove, .MF-update, .MF-error, .MF-enable, .MF-retry, .MF-loading { font-size: 90%; width: 90px; height: 24px; text-align: center; display: inline-block; font-weight: bold; border-radius: 3px; text-transform: upper-case; }");
+    styleSheet.insertRule(".MF-install, .MF-remove, .MF-update, .MF-error, .MF-enable, .MF-retry { cursor: pointer }");
+
+    styleSheet.insertRule(".MF-install { color: #222; background: #CDDC39; border: 1px solid #827717; box-shadow: 0 3px #827717; }");
+    styleSheet.insertRule(".MF-install:after { content: 'INSTALL'; }");
+    styleSheet.insertRule(".MF-install:hover, .MF-install:focus { color: #222; background: #B4C333; }");
+    styleSheet.insertRule(".MF-install .spinner { display : none }");
+
+    styleSheet.insertRule(".MF-remove { color: #fff; background: #0E8AE0; border: 1px solid #095C96; box-shadow: 0 3px #095C96; }");
+    styleSheet.insertRule(".MF-remove:after { content: '✓'; }");
     styleSheet.insertRule(".MF-remove:hover, .MF-remove:focus { background: #DC8B39; color: #C32C27; border: 1px solid #834D18; box-shadow: 0 3px #834D18; }");
-    styleSheet.insertRule(".MF-remove:hover:after .MF-remove:focus:after { content: \"REMOVE\" ; }");
+    styleSheet.insertRule(".MF-remove:hover:after, .MF-remove:focus:after { content: \"REMOVE\" ; }");
+    styleSheet.insertRule(".MF-remove .spinner { display : none }");
 
+    styleSheet.insertRule(".MF-update { color: #222; background: #FFDE33; border: 1px solid #808000; box-shadow: 0 3px #808000; }");
+    styleSheet.insertRule(".MF-update:after { content: '⚠'; }");
+    styleSheet.insertRule(".MF-update:hover, .MF-update:focus { color: #222; background: #E6C82E; }");
+    styleSheet.insertRule(".MF-update:hover:after, .MF-update:focus:after { content: 'UPDATE' ; }");
+    styleSheet.insertRule(".MF-update .spinner { display : none }");
 
+    styleSheet.insertRule(".MF-enable { color: #222; background: #FFDE33; border: 1px solid #808000; box-shadow: 0 3px #808000; }");
+    styleSheet.insertRule(".MF-enable:after { content: '⚠'; }");
+    styleSheet.insertRule(".MF-enable:hover, .MF-enable:focus { color: #222; background: #E6C82E; }");
+    styleSheet.insertRule(".MF-enable:hover:after, .MF-enable:focus:after { content: 'ENABLE' ; }");
+    styleSheet.insertRule(".MF-enable .spinner { display : none }");
+
+    styleSheet.insertRule(".MF-retry { color: #222; background: #DC3939; border: 1px solid #832218; box-shadow: 0 3px #832218; }");
+    styleSheet.insertRule(".MF-retry:after { content: '✗'; }");
+    styleSheet.insertRule(".MF-retry:hover, .MF-retry:focus { color: #222; background: #F64040; }");
+    styleSheet.insertRule(".MF-retry:hover:after, .MF-retry:focus:after { content: 'RETRY' ; }");
+    styleSheet.insertRule(".MF-retry .spinner { display : none }");
+
+    styleSheet.insertRule(".MF-loading { cursor:auto; background: #A48AA4; border: 1px solid #838383; box-shadow: 0 3px #838383; }");
 }
-
-
-
 
 
 
