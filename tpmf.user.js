@@ -2,7 +2,7 @@
 // @name          TagPro ModFather
 // @description   Shows available mods on the TagPro website, Notifies when new Mods are released, And more...
 // @author        Ko
-// @version       0.3.0.beta
+// @version       0.4.beta
 // @match         http://*.koalabeast.com/*
 // @match         greasyfork.org/modfather
 // @supportURL    https://www.reddit.com/message/compose/?to=Wilcooo
@@ -16,14 +16,17 @@
 // @grant         GM_xmlhttpRequest
 // @connect       script.google.com
 // @connect       script.googleusercontent.com
+// @require       https://raw.githubusercontent.com/showdownjs/showdown/master/dist/showdown.min.js
 // @namespace https://greasyfork.org/users/152992
 // ==/UserScript==
+
+
 
 
 /* TODO LIST for first release:
 
 
-Render Markdown (description & update log)
+sorting and filtering!!!
 
 Replace 'alerts' with 'modals'
 
@@ -194,7 +197,12 @@ var getDatabase = new Promise(function(resolve,reject){
     }
 });
 
-MF_database = getDatabase;
+
+
+var sd_converter = new showdown.Converter();
+
+var makeHtml = markdown => sd_converter.makeHtml(markdown);
+
 
 
 
@@ -686,21 +694,21 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
         <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal">&times;</button>
           <h4 class="modal-title" id="MF-infoBox-name">Mod</h4>
-          <p>by <span id="MF-infoBox-authors">Some Ball</span>
+          <subtitle>by <span id="MF-infoBox-authors">Some Ball</span>
         </div>
 
         <div class="modal-body">
           <div id="MF-infoBox-install"></div>
-          <div id="MF-infoBox-summary">This mod lets you take over the world!</div>
+          <div id="MF-infoBox-summary">This mod lets you take over the world!</div><hr>
           <div id="MF-infoBox-updates">- Bug Fixes<br>- New Features</div>
           <div id="MF-infoBox-description">You've found the most awesome mod! Install it now to be amazed :)</div>
         </div>
 
         <div class="modal-footer">
+          <button type="button" class="btn btn-default close" data-dismiss="modal">Close</button>
           <div id="MF-infoBox-buttons"></div>
           <div id="MF-infoBox-tags"></div>
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <p style="font-size:10px;">Please excuse me for the horrible layout and style of this popup :|<br>I'm working on it
+          <p style="font-size:10px;">The style of this popup needs some polishing i.m.o.<br>Contact me if you know CSS and have a good taste
         </div>
       </div>
 
@@ -729,7 +737,7 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
             infoBox.authors.innerHTML += '<span class="sort author-filter" onclick=MF_setAuthorFilter("' + author.NAME + '")><a>' + author.NAME + '</a></span> ';
 
         infoBox.install.innerHTML = '';
-        infoBox.install.appendChild( mod.BUTTON.cloneNode() );
+        infoBox.install.appendChild( mod.BUTTON );
 
         infoBox.summary.innerText = mod.SUMMARY;
 
@@ -737,13 +745,20 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
 
         infoBox.updates.innerText = mod.UPDATES && mod.UPDATES[mod.UPDATES.length-1] && mod.UPDATES[mod.UPDATES.length-1].NOTES || 'no updates';
 
-        infoBox.description.innerText = mod.DESCRIPTION;
+        if ( mod.UPDATES && mod.UPDATES[mod.UPDATES.length-1] ) {
+            infoBox.updates.innerHTML = makeHtml(mod.UPDATES[mod.UPDATES.length-1].NOTES);
+            infoBox.updates.hidden = false;
+        } else infoBox.updates.hidden = true;
+
+        infoBox.description.innerHTML = makeHtml(mod.DESCRIPTION);
 
         infoBox.buttons.innerHTML = '';
 
         if (mod.WEBSITE) infoBox.buttons.innerHTML += '<a href="'+mod.WEBSITE+'">WEBSITE</a> ';
 
-        if (mod.REDDIT) infoBox.buttons.innerHTML += '<a href="'+mod.REDDIT+'">REDDIT</a> ';
+        if (mod.REDDIT) {
+            infoBox.buttons.innerHTML += '<a href="'+mod.REDDIT+'"><img src="https://i.imgur.com/nSaYH3g.png"></a> ';
+        }
 
         if (mod.SOURCE) infoBox.buttons.innerHTML += '<a href="'+mod.SOURCE+'">SOURCE</a> ';
 
@@ -755,6 +770,8 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
             infoBox.tags.innerHTML += '<span class="sort tag-filter" onclick=MF_setTagFilter("' + tag + '")><a>' + tag + '</a></span> ';
 
     };
+
+    $('#MF-infoBox').on('hidden.bs.modal',update_sort_filter);
 
 
 
@@ -882,6 +899,41 @@ I plan to make custom forms right here in ModFather to make it possible to chang
 
     // Highlighting the table rows
     styleSheet.insertRule("#list-tbody tr:hover { cursor:help; box-shadow: rgba(100, 200, 100, 0.4) 0 0 15px 5px  inset;  }");
+
+
+
+
+
+    // infoBox
+    /*infoBox.name        = document.getElementById('MF-infoBox-name');
+    infoBox.authors     = document.getElementById('MF-infoBox-authors');
+    infoBox.install     = document.getElementById('MF-infoBox-install');
+    infoBox.summary     = document.getElementById('MF-infoBox-summary');
+    infoBox.updates     = document.getElementById('MF-infoBox-updates');
+    infoBox.description = document.getElementById('MF-infoBox-description');
+    infoBox.buttons     = document.getElementById('MF-infoBox-buttons');
+    infoBox.tags        = document.getElementById('MF-infoBox-tags');*/
+
+    styleSheet.insertRule("#MF-infoBox .modal-header { background-color:#8BC34A; text-align:center; }");
+    styleSheet.insertRule("#MF-infoBox .modal-header h4 { font-size:30px; }");
+    styleSheet.insertRule("#MF-infoBox .modal-header .close { font-size:30px; float:right; font-weight: bolder; border: none; background: none; opacity: .3; }");
+    styleSheet.insertRule("#MF-infoBox .modal-header .close:hover { opacity: .7; }");
+    styleSheet.insertRule("#MF-infoBox .modal-header subtitle { font-style:italic; }");
+    styleSheet.insertRule("#MF-infoBox .modal-header a { color:#0E8AE0; }");
+    styleSheet.insertRule("#MF-infoBox .modal-header a:hover { color:#0277BD; }");
+
+    styleSheet.insertRule("#MF-infoBox-install { float:right; }");
+    styleSheet.insertRule("#MF-infoBox-summary { text-align:center; }");
+
+    styleSheet.insertRule("#MF-infoBox-updates { border-color: aqua; border-style: dotted; border-radius: 10px; margin: auto; width: 80%; margin-top: 20px; font-size: medium; padding: 10px; }");
+
+    styleSheet.insertRule("#MF-infoBox-description { margin:auto; width:90% }");
+
+    styleSheet.insertRule("#MF-infoBox .modal-footer { background-color:#8BC34A; text-align:center; }");
+    styleSheet.insertRule("#MF-infoBox .modal-footer a { color:#0E8AE0; }");
+    styleSheet.insertRule("#MF-infoBox .modal-footer a:hover { color:#0277BD; }");
+    styleSheet.insertRule("#MF-infoBox .modal-footer .close { float:right; }");
+
 
 }
 
