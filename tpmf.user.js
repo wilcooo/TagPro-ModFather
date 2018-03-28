@@ -2,7 +2,7 @@
 // @name          TagPro ModFather
 // @description   Shows available mods on the TagPro website, Notifies when new Mods are released, And more...
 // @author        Ko
-// @version       0.2.2.beta
+// @version       0.3.0.beta
 // @match         http://*.koalabeast.com/*
 // @match         greasyfork.org/modfather
 // @supportURL    https://www.reddit.com/message/compose/?to=Wilcooo
@@ -18,6 +18,39 @@
 // @connect       script.googleusercontent.com
 // @namespace https://greasyfork.org/users/152992
 // ==/UserScript==
+
+
+/* TODO LIST for first release:
+
+
+Render Markdown (description & update log)
+
+Replace 'alerts' with 'modals'
+
+Maybe replace 'displayMessage' with 'modals'
+
+
+
+
+/* Later versions:
+
+(a) A system for userscript authors and/or moderators of ModFather to submit new scripts, and update/edit the data.
+(b) A system to count installs and upvotes, and maybe somehow keeps track of which scripts are installed.
+(c) Reviews by users, and a report system
+(d) A way for mods to show their settings inside ModFather, so that all mods' options are customizable in a central place.
+
+
+
+*/
+
+
+
+
+
+
+
+
+
 
 const DATABASE_URL = "https://script.google.com/macros/s/AKfycbybe8e37-gpfe3cqN53UxZbvqVdysjFfdN5e1pDeqeJtAvnjaI/exec";
 
@@ -346,26 +379,58 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
 
     getDatabase.then(function(database) {
 
-        for (var mod of database.MODS) {
+        database.MODS.forEach(function(mod) {
 
             mod.LIST = document.createElement('tr');
             mod.LIST.style.height = '50px';
 
-            mod.LIST.innerHTML += '<td> <img width=24 height=24 src=' + mod.ICON + '>';
+            mod.LIST.innerHTML += '<td> <img width=24 height=24 data-src=' + mod.ICON + '>';
             mod.LIST.innerHTML += '<td> ? ';
             mod.LIST.innerHTML += '<td> ? ';
             mod.LIST.innerHTML += '<td>' + mod.NAME;
             mod.LIST.innerHTML += '<td>' + mod.SUMMARY;
 
             mod.LIST.innerHTML += '<td>';
-            for (var tag of mod.TAGS)
+            for (let tag of mod.TAGS)
                 mod.LIST.lastChild.innerHTML += '<span class="sort tag-filter" onclick=MF_setTagFilter("' + tag + '")><a>' + tag + '</a></span> ';
 
             mod.LIST.innerHTML += '<td>';
-            for (var author of mod.AUTHORS)
+            for (let author of mod.AUTHORS)
                 mod.LIST.lastChild.innerHTML += '<span class="sort author-filter" onclick=MF_setAuthorFilter("' + author.NAME + '")><a>' + author.NAME + '</a></span> ';
 
-            mod.LIST.innerHTML += '<td>';
+            mod.LIST.innerHTML += '<td class="list-button">';
+
+            mod.LIST.onclick = click => click.target.tagName != 'A' ? openInfoBox(mod) : 0;
+
+
+
+
+
+            mod.TILE = document.createElement('div');
+            mod.TILE.className = "col-xs-12 col-sm-6 col-md-4 col-lg-3";
+            mod.TILE.innerHTML += '<div class="tile-choice">';
+
+            mod.TILE.firstChild.innerHTML += '<span class="tile-rating" title="Installs and Upvotes">?  ?';
+            mod.TILE.firstChild.innerHTML += '<div class="tile-name">' + mod.NAME;
+
+            mod.TILE.firstChild.innerHTML += '<div class="tile-authors"> by ';
+            for (let author of mod.AUTHORS)
+                mod.TILE.firstChild.lastChild.innerHTML += '<span class="sort author-filter" onclick=MF_setAuthorFilter("' + author.NAME + '")><a>' + author.NAME + '</a></span> ';
+
+            mod.TILE.firstChild.innerHTML += '<hr><img data-src="' + mod.IMAGE + '" width=100% class="img-responsive"><hr>';
+            mod.TILE.firstChild.innerHTML += '<div class="tile-summary">' + mod.SUMMARY;
+            mod.TILE.firstChild.innerHTML += '<div class="tile-button">';
+
+            mod.TILE.firstChild.innerHTML += '<div class="tile-tags">';
+            for (let tag of mod.TAGS)
+                mod.TILE.firstChild.lastChild.innerHTML += '<span class="sort tag-filter" onclick=MF_setTagFilter("' + tag + '")><a>' + tag + '</a></span> ';
+
+            mod.TILE.onclick = click => click.target.tagName != 'A' ? openInfoBox(mod) : 0;
+
+
+
+
+
 
             mod.BUTTON = document.createElement('a');
             mod.BUTTON.setAttribute('data-install-link', mod.LINK);
@@ -373,85 +438,7 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
             mod.BUTTON.className = "MF-loading";
             mod.BUTTON.innerHTML = "<div class=spinner> <div class=spinner-item></div> <div class=spinner-item></div> <div class=spinner-item></div>";
 
-            mod.LIST.lastChild.appendChild( mod.BUTTON );
-
-            mod.BUTTON.onclick = function(click){
-                if ([...click.srcElement.classList].includes('MF-install') ||
-                    [...click.srcElement.classList].includes('MF-update') ||
-                    [...click.srcElement.classList].includes('MF-retry')) {
-                    console.log('INSTALLING', click.srcElement.getAttribute('data-install-link'));
-
-                    click.srcElement.className = "MF-loading";
-                    var installer = GM_openInTab(click.srcElement.getAttribute('data-install-link'),true);
-                    installer.close();
-
-                    click.srcElement.INSTALLING = true;
-
-                    window.addEventListener("focus", update_installed, {once:true});
-                }
-
-                else if ( [...click.srcElement.classList].includes('MF-remove') ) {
-                    console.log('REMOVING', click.srcElement.getAttribute('data-name'));
-
-                    if (GM_getValue('TampermonkeyInstalled') && DASHBOARD_URL[getBrowser()] ) {
-
-                        if (confirm('Click on the bin icon next to the script(s) that you want to remove.\n\nPlease close the tab whenever you are ready to get back.')) {
-                            let TM_dashboard = GM_openInTab( DASHBOARD_URL[getBrowser()] , false);
-
-                            TM_dashboard.onclose = function(){
-                                document.getElementById('msg_backFromRemove').remove();
-                                update_installed();
-                            };
-
-                            displayMessage('Welcome back! Click this bubble to redetect which mods are installed/removed','msg_backFromRemove',TM_dashboard.onclose);
-                        }
-                    } else if (GM_getValue('TampermonkeyInstalled')) {
-
-                        displayMessage('I haven\'t added support for your browser yet, sorry! <p> Go to Tampermonkey\'s <i>dashboard</i> to remove scripts. You can usually get there by clicking its <img onclick="MF_wrongIcon()" src="http://tampermonkey.net/images/icon_grey.png" height=24> icon. <p> Then click this bubble to redetect which mods are installed/removed','msg_backFromRemove',function(){
-                            document.getElementById('msg_backFromRemove').remove();
-                            update_installed();
-                        });
-                    } else {
-
-                        displayMessage('Tampermonkey is not detected. Go to your userscript managers\' dashboard to remove scripts. Then click this bubble to redetect which mods are installed/removed','msg_backFromRemove',function(){
-                            document.getElementById('msg_backFromRemove').remove();
-                            update_installed();
-                        });
-                    }
-                }
-
-                else if ( [...click.srcElement.classList].includes('MF-enable') ) {
-                    console.log('ENABLING', click.srcElement.getAttribute('data-name'));
-
-                    if (GM_getValue('TampermonkeyInstalled') && DASHBOARD_URL[getBrowser()] ) {
-
-                        if (confirm('Switch the slider next to the script(s) that you want to enable/disable.\n\nPlease close the tab whenever you are ready to get back.')) {
-                            let TM_dashboard = GM_openInTab( DASHBOARD_URL[getBrowser()] , false);
-
-                            TM_dashboard.onclose = function(){
-                                document.getElementById('msg_backFromEnable').remove();
-                                update_installed();
-                            };
-
-                            displayMessage('Welcome back! Click this bubble to redetect which mods are enabled/disabled','msg_backFromEnable',TM_dashboard.onclose);
-                        }
-                    } else if (GM_getValue('TampermonkeyInstalled')) {
-
-                        displayMessage('I haven\'t added support for your browser yet, sorry! <p> Go to Tampermonkey\'s <i>dashboard</i> to enable scripts. You can usually get there by clicking its <img onclick="MF_wrongIcon()" src="http://tampermonkey.net/images/icon_grey.png" height=24> icon. <p> Then click this bubble to redetect which mods are enabled/disabled','msg_backFromEnable',function(){
-                            document.getElementById('msg_backFromEnable').remove();
-                            update_installed();
-                        });
-                    } else {
-
-                        displayMessage('Tampermonkey is not detected. Go to your userscript managers\' dashboard to enable scripts. Then click this bubble to redetect which mods are enabled/disable','msg_backFromEnable',function(){
-                            document.getElementById('msg_backFromEnable').remove();
-                            update_installed();
-                        });
-                    }
-                }
-            };
-
-        }
+        });
 
         update_sort_filter();
 
@@ -485,9 +472,102 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
     };
 
 
+    MF_clickInstall = function(click){
+        console.log('MF_clickInstall');
+        if ([...click.srcElement.classList].includes('MF-install') ||
+            [...click.srcElement.classList].includes('MF-update') ||
+            [...click.srcElement.classList].includes('MF-retry')) {
+
+            console.log('INSTALLING', click.srcElement.getAttribute('data-install-link'));
+
+            click.srcElement.className = "MF-loading";
+            var installer = GM_openInTab(click.srcElement.getAttribute('data-install-link'),true);
+            installer.close();
+
+            click.srcElement.INSTALLING = true;
+
+            window.addEventListener("focus", update_installed, {once:true});
+        }
+
+        else if ( [...click.srcElement.classList].includes('MF-remove') ) {
+            console.log('REMOVING', click.srcElement.getAttribute('data-name'));
+
+            click.srcElement.className = "MF-loading";
+
+            if (GM_getValue('TampermonkeyInstalled') && DASHBOARD_URL[getBrowser()] ) {
+
+                if (confirm('Click on the bin icon next to the script(s) that you want to remove.\n\nPlease close the tab whenever you are ready to get back.')) {
+
+                    let TM_dashboard = GM_openInTab( DASHBOARD_URL[getBrowser()] , false);
+
+                    TM_dashboard.onclose = function(){
+                        if (document.getElementById('msg_backFromRemove')) {
+                            document.getElementById('msg_backFromRemove').remove();
+                            update_installed();
+                        }
+                    };
+
+                    displayMessage('Welcome back! Click this bubble to redetect which mods are installed/removed','msg_backFromRemove',TM_dashboard.onclose);
+                } else click.srcElement.className = "MF-remove";
+            } else if (GM_getValue('TampermonkeyInstalled')) {
+
+                displayMessage('I haven\'t added support for your browser yet, sorry! <p> Go to Tampermonkey\'s <i>dashboard</i> to remove scripts. You can usually get there by clicking its <img onclick="MF_wrongIcon()" src="http://tampermonkey.net/images/icon_grey.png" height=24> icon. <p> Then click this bubble to redetect which mods are installed/removed','msg_backFromRemove',function(){
+                    document.getElementById('msg_backFromRemove').remove();
+                    update_installed();
+                });
+            } else {
+
+                displayMessage('Tampermonkey is not detected. Go to your userscript managers\' dashboard to remove scripts. Then click this bubble to redetect which mods are installed/removed','msg_backFromRemove',function(){
+                    document.getElementById('msg_backFromRemove').remove();
+                    update_installed();
+                });
+            }
+        }
+
+        else if ( [...click.srcElement.classList].includes('MF-enable') ) {
+            console.log('ENABLING', click.srcElement.getAttribute('data-name'));
+
+            click.srcElement.className = "MF-loading";
+
+            if (GM_getValue('TampermonkeyInstalled') && DASHBOARD_URL[getBrowser()] ) {
+
+                if (confirm('Switch the slider next to the script(s) that you want to enable/disable.\n\nPlease close the tab whenever you are ready to get back.')) {
+                    let TM_dashboard = GM_openInTab( DASHBOARD_URL[getBrowser()] , false);
+
+                    TM_dashboard.onclose = function(){
+                        if (document.getElementById('msg_backFromEnable')) {
+                            document.getElementById('msg_backFromEnable').remove();
+                            update_installed();
+                        }
+                    };
+
+                    displayMessage('Welcome back! Click this bubble to redetect which mods are enabled/disabled','msg_backFromEnable',TM_dashboard.onclose);
+                } else click.srcElement.className = "MF-enable";
+            } else if (GM_getValue('TampermonkeyInstalled')) {
+
+                displayMessage('I haven\'t added support for your browser yet, sorry! <p> Go to Tampermonkey\'s <i>dashboard</i> to enable scripts. You can usually get there by clicking its <img onclick="MF_wrongIcon()" src="http://tampermonkey.net/images/icon_grey.png" height=24> icon. <p> Then click this bubble to redetect which mods are enabled/disabled','msg_backFromEnable',function(){
+                    document.getElementById('msg_backFromEnable').remove();
+                    update_installed();
+                });
+            } else {
+
+                displayMessage('Tampermonkey is not detected. Go to your userscript managers\' dashboard to enable scripts. Then click this bubble to redetect which mods are enabled/disable','msg_backFromEnable',function(){
+                    document.getElementById('msg_backFromEnable').remove();
+                    update_installed();
+                });
+            }
+        }
+    };
+
+    document.addEventListener('click', MF_clickInstall);
+
+
+
     var update_sort_filter = function() {
 
         console.log('SORTING AND/OR FILTERING!!!!');
+
+        var view = window.location.hash.substr(1);
 
         var sort = sort_filter.sort,
             tag_filter = sort.tag_filter,
@@ -517,18 +597,39 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
 
             // if (sort == 'top')
 
-            // Clear the list
-            while (list_tbody.firstChild) list_tbody.removeChild(list_tbody.firstChild);
+            // Clear the list/tile
+            if (view == 'list') while (list_tbody.firstChild) list_tbody.removeChild(list_tbody.firstChild);
+            if (view == 'tile') while (tile_list.firstChild) tile_list.removeChild(tile_list.firstChild);
 
             // Fill again, but sorted && filtered
 
-            for (let mod of sorted_filtered_mods)
-                list_tbody.appendChild(mod.LIST);
+            for (let mod of sorted_filtered_mods) {
+
+                if (view == 'list') {
+                    list_tbody.appendChild(mod.LIST);
+                    mod.LIST.getElementsByClassName("list-button")[0].appendChild( mod.BUTTON );
+
+                    let img = mod.LIST.getElementsByTagName("img")[0];
+                    img.src = img.getAttribute('data-src');
+                }
+                if (view == 'tile') {
+                    tile_list.appendChild(mod.TILE);
+                    mod.TILE.getElementsByClassName("tile-button")[0].appendChild( mod.BUTTON );
+
+                    let img = mod.TILE.getElementsByTagName("img")[0];
+                    img.src = img.getAttribute('data-src');
+                }
+            }
 
         });
     };
 
+    list_tab.addEventListener('click', update_sort_filter);
+    tile_tab.addEventListener('click', update_sort_filter);
+
     var update_installed = function() {
+
+        $('#MF-infoBox').modal('hide');
 
         greasyFetch(function(){
 
@@ -567,6 +668,97 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
         });
     };
 
+
+
+    var infoBox = document.createElement('div');
+    infoBox.className = 'modal fade';
+    infoBox.id = 'MF-infoBox';
+
+    document.body.appendChild(infoBox);
+
+    infoBox.innerHTML =
+    `
+    <div class="modal-dialog" style="width:80%">
+
+      <!-- Modal content-->
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title" id="MF-infoBox-name">Mod</h4>
+          <p>by <span id="MF-infoBox-authors">Some Ball</span>
+        </div>
+
+        <div class="modal-body">
+          <div id="MF-infoBox-install"></div>
+          <div id="MF-infoBox-summary">This mod lets you take over the world!</div>
+          <div id="MF-infoBox-updates">- Bug Fixes<br>- New Features</div>
+          <div id="MF-infoBox-description">You've found the most awesome mod! Install it now to be amazed :)</div>
+        </div>
+
+        <div class="modal-footer">
+          <div id="MF-infoBox-buttons"></div>
+          <div id="MF-infoBox-tags"></div>
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <p style="font-size:10px;">Please excuse me for the horrible layout and style of this popup :|<br>I'm working on it
+        </div>
+      </div>
+
+    </div>
+    `;
+
+    infoBox.name        = document.getElementById('MF-infoBox-name');
+    infoBox.authors     = document.getElementById('MF-infoBox-authors');
+    infoBox.install     = document.getElementById('MF-infoBox-install');
+    infoBox.summary     = document.getElementById('MF-infoBox-summary');
+    infoBox.updates     = document.getElementById('MF-infoBox-updates');
+    infoBox.description = document.getElementById('MF-infoBox-description');
+    infoBox.buttons     = document.getElementById('MF-infoBox-buttons');
+    infoBox.tags        = document.getElementById('MF-infoBox-tags');
+
+
+    var openInfoBox = function(mod) {
+
+        $('#MF-infoBox').modal();
+
+        infoBox.name.innerText = mod.NAME;
+
+        infoBox.authors.innerHTML = '';
+
+        for (let author of mod.AUTHORS)
+            infoBox.authors.innerHTML += '<span class="sort author-filter" onclick=MF_setAuthorFilter("' + author.NAME + '")><a>' + author.NAME + '</a></span> ';
+
+        infoBox.install.innerHTML = '';
+        infoBox.install.appendChild( mod.BUTTON.cloneNode() );
+
+        infoBox.summary.innerText = mod.SUMMARY;
+
+        console.log(mod);
+
+        infoBox.updates.innerText = mod.UPDATES && mod.UPDATES[mod.UPDATES.length-1] && mod.UPDATES[mod.UPDATES.length-1].NOTES || 'no updates';
+
+        infoBox.description.innerText = mod.DESCRIPTION;
+
+        infoBox.buttons.innerHTML = '';
+
+        if (mod.WEBSITE) infoBox.buttons.innerHTML += '<a href="'+mod.WEBSITE+'">WEBSITE</a> ';
+
+        if (mod.REDDIT) infoBox.buttons.innerHTML += '<a href="'+mod.REDDIT+'">REDDIT</a> ';
+
+        if (mod.SOURCE) infoBox.buttons.innerHTML += '<a href="'+mod.SOURCE+'">SOURCE</a> ';
+
+        if (mod.UPDATES && mod.UPDATES.length) infoBox.buttons.innerHTML += 'LAST UPDATE: '+mod.UPDATES[mod.UPDATES.length-1].DATE;
+
+        infoBox.tags.innerHTML = '';
+
+        for (let tag of mod.TAGS)
+            infoBox.tags.innerHTML += '<span class="sort tag-filter" onclick=MF_setTagFilter("' + tag + '")><a>' + tag + '</a></span> ';
+
+    };
+
+
+
+
     MF_otherManager = function() {
 
         if (confirm('Are you sure? Tampermonkey is the only supported manager. With another one it isn\'t possible to see which scripts are installed, and upvotes won\'t work. \n\n Click "Ok" to hide the warning forever. You can still install Tampermonkey anytime if you change your mind.')) {
@@ -581,6 +773,14 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
     };
 
 
+
+
+
+
+
+
+
+
     tile_content.innerHTML += '<div class="row">  <div class="col-xs-12"> <p class="explanation-bubble"> Customize TagPro by installing mods. <span id="sort-options-tile" class="pull-right"> Sort by ';
     var sort_options_tile = document.getElementById('sort-options-tile');
 
@@ -590,7 +790,10 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
     sort_options_tile.innerHTML += '<span class="sort" data-sort-name="Popularity"><a> Popularity ';
     sort_options_tile.innerHTML += '<span class="sort" data-sort-name="Upvotes"><a> Upvotes ';
 
-    tile_content.innerHTML += 'No available mods. ModFather is still under construction. Click on <i>Information</i> if you want to help.';
+
+    tile_content.innerHTML += '<div id="tiles">';
+
+    var tile_list = document.getElementById('tiles');
 
 
 
@@ -598,9 +801,18 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
 
 
     // Put some content in the content containers; thirdly, the 'info' tab
-    info_content.innerHTML += 'This is the TagPro ModFather. If you want to help, send a message to <a href="https://www.reddit.com/message/compose/?to=Wilcooo">Ko</a><br>';
+    info_content.innerHTML += 'This is the TagPro ModFather. You can contribute by adding mods to its database. If you want to help in another way or have feedback, send a message to <a href="https://www.reddit.com/message/compose/?to=Wilcooo">Ko</a>';
+    info_content.innerHTML += `
+<p>The database is currently being updated via three Google Forms, one for
+<i><a href="https://docs.google.com/forms/d/1xJ9rGAeYAWG8-nZbjjXJKhteP893xwBsjo07YAqymd8/viewform">adding authors</a></i>, one for
+<i><a href="https://docs.google.com/forms/d/1ID5NlYCVYxXKuXudPud6x9rdRMcV9RQf2UXtKFXWD6g/viewform">adding mods</a></i> and one for
+<i><a href="https://docs.google.com/forms/d/1QIylJov7XAOZSqzWMIVR7tIFaJ5-ZsAb9nHE_9aYnR4/viewform">updating the changelog</a></i> of a mod.
+I plan to make custom forms right here in ModFather to make it possible to change or delete authors and mods, as well as a way to undo actions and possibly some sort of permission system.
 
-    info_content.innerHTML += '<iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdIjXYaUa9Hzn3Sk6NHUkvBHAMBj6TAXsu9d8oUDCJjKwxhcQ/viewform?embedded=true" height="500" frameborder="0" marginheight="0" marginwidth="0">Bezig met laden...</iframe>';
+<p>The database will keep the same structure though, so mods that are added via the Google Forms won't need to be re-added when the new system gets activated.
+
+<p>The source of this mod, as well as more information is on its <a href="https://github.com/Wilcooo/TagPro-ModFather">GitHub repo</a>.
+`;
 
 
 
@@ -616,8 +828,8 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
     styleSheet.insertRule(".sort { cursor: pointer }");
 
     // The install/remove/etc. buttons
-    styleSheet.insertRule(".MF-install, .MF-remove, .MF-update, .MF-error, .MF-enable, .MF-retry, .MF-loading { font-size: 90%; width: 90px; height: 24px; text-align: center; display: inline-block; font-weight: bold; border-radius: 3px; text-transform: upper-case; }");
-    styleSheet.insertRule(".MF-install, .MF-remove, .MF-update, .MF-error, .MF-enable, .MF-retry { cursor: pointer }");
+    styleSheet.insertRule(".MF-install, .MF-remove, .MF-update, .MF-error, .MF-enable, .MF-retry, .MF-loading { overflow:hidden; font-size: 90%; width: 90px; height: 24px; text-align: center; display: inline-block; font-weight: bold; border-radius: 3px; text-transform: upper-case; }");
+    styleSheet.insertRule(".MF-install, .MF-remove, .MF-update, .MF-error, .MF-enable, .MF-retry { cursor: pointer; onclick:'MF_clickInstall()' }");
 
     styleSheet.insertRule(".MF-install { color: #222; background: #CDDC39; border: 1px solid #827717; box-shadow: 0 3px #827717; }");
     styleSheet.insertRule(".MF-install:after { content: 'INSTALL'; }");
@@ -649,11 +861,29 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
     styleSheet.insertRule(".MF-retry .spinner { display : none }");
 
     styleSheet.insertRule(".MF-loading { cursor:auto; background: #A48AA4; border: 1px solid #838383; box-shadow: 0 3px #838383; }");
+
+
+
+    // Now for the tile-view CSS
+    styleSheet.insertRule(".tile-choice { overflow: auto; background: #383838; border-radius: 3px; margin-bottom: 20px; padding: 8px; border: 1px solid #3c3c3c; cursor: help; } ");
+    styleSheet.insertRule(".tile-choice:hover { box-shadow: rgba(100, 200, 100, 0.4) 0px 0px 15px 5px; }");
+    styleSheet.insertRule(".tile-rating { font-size:11px; float:right; }");
+    styleSheet.insertRule(".tile-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; height:26px; color: #8BC34A; font-size: 22px; font-weight: bold; }");
+    styleSheet.insertRule(".tile-authors { text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }");
+
+    styleSheet.insertRule(".tile-summary { position:relative; font-size:16px; height:40px; overflow:hidden; }");
+    styleSheet.insertRule(".tile-summary:after { position:absolute; content:''; padding-right:150px; bottom:0; right:0; wdith:100%; height:20px; background:linear-gradient(to right, #38383800, #383838FF 80% );  }");
+
+    styleSheet.insertRule(".tile-button { float:right; margin-top:16px; }");
+    styleSheet.insertRule(".tile-tags { font-size:16px; margin-right:100px; height:40px; overflow:hidden; }");
+    styleSheet.insertRule(".tile-choice hr { padding-top: 8px; border-top: 2px solid #3c3c3c; margin: 8px 0 4px; }");
+
+
+
+    // Highlighting the table rows
+    styleSheet.insertRule("#list-tbody tr:hover { cursor:help; box-shadow: rgba(100, 200, 100, 0.4) 0 0 15px 5px  inset;  }");
+
 }
-
-
-
-
 
 
 function selectTab(tab = window.location.hash.substr(1)) {
