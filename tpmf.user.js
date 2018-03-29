@@ -2,7 +2,7 @@
 // @name          TagPro ModFather
 // @description   Shows available mods on the TagPro website, Notifies when new Mods are released, And more...
 // @author        Ko
-// @version       0.4.beta
+// @version       0.4.1.beta
 // @match         http://*.koalabeast.com/*
 // @match         greasyfork.org/modfather
 // @supportURL    https://www.reddit.com/message/compose/?to=Wilcooo
@@ -16,7 +16,7 @@
 // @grant         GM_xmlhttpRequest
 // @connect       script.google.com
 // @connect       script.googleusercontent.com
-// @require       https://raw.githubusercontent.com/showdownjs/showdown/master/dist/showdown.min.js
+// @require       https://cdnjs.cloudflare.com/ajax/libs/showdown/1.8.6/showdown.min.js
 // @namespace https://greasyfork.org/users/152992
 // ==/UserScript==
 
