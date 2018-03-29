@@ -2,7 +2,7 @@
 // @name          TagPro ModFather
 // @description   Shows available mods on the TagPro website, Notifies when new Mods are released, And more...
 // @author        Ko
-// @version       0.4.1.beta
+// @version       0.4.2.beta
 // @match         http://*.koalabeast.com/*
 // @match         greasyfork.org/modfather
 // @supportURL    https://www.reddit.com/message/compose/?to=Wilcooo
@@ -482,25 +482,25 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
 
     MF_clickInstall = function(click){
         console.log('MF_clickInstall');
-        if ([...click.srcElement.classList].includes('MF-install') ||
-            [...click.srcElement.classList].includes('MF-update') ||
-            [...click.srcElement.classList].includes('MF-retry')) {
+        if ([...click.target.classList].includes('MF-install') ||
+            [...click.target.classList].includes('MF-update') ||
+            [...click.target.classList].includes('MF-retry')) {
 
-            console.log('INSTALLING', click.srcElement.getAttribute('data-install-link'));
+            console.log('INSTALLING', click.target.getAttribute('data-install-link'));
 
-            click.srcElement.className = "MF-loading";
-            var installer = GM_openInTab(click.srcElement.getAttribute('data-install-link'),true);
+            click.target.className = "MF-loading";
+            var installer = GM_openInTab(click.target.getAttribute('data-install-link'),true);
             installer.close();
 
-            click.srcElement.INSTALLING = true;
+            click.target.INSTALLING = true;
 
             window.addEventListener("focus", update_installed, {once:true});
         }
 
-        else if ( [...click.srcElement.classList].includes('MF-remove') ) {
-            console.log('REMOVING', click.srcElement.getAttribute('data-name'));
+        else if ( [...click.target.classList].includes('MF-remove') ) {
+            console.log('REMOVING', click.target.getAttribute('data-name'));
 
-            click.srcElement.className = "MF-loading";
+            click.target.className = "MF-loading";
 
             if (GM_getValue('TampermonkeyInstalled') && DASHBOARD_URL[getBrowser()] ) {
 
@@ -516,7 +516,7 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
                     };
 
                     displayMessage('Welcome back! Click this bubble to redetect which mods are installed/removed','msg_backFromRemove',TM_dashboard.onclose);
-                } else click.srcElement.className = "MF-remove";
+                } else click.target.className = "MF-remove";
             } else if (GM_getValue('TampermonkeyInstalled')) {
 
                 displayMessage('I haven\'t added support for your browser yet, sorry! <p> Go to Tampermonkey\'s <i>dashboard</i> to remove scripts. You can usually get there by clicking its <img onclick="MF_wrongIcon()" src="http://tampermonkey.net/images/icon_grey.png" height=24> icon. <p> Then click this bubble to redetect which mods are installed/removed','msg_backFromRemove',function(){
@@ -532,10 +532,10 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
             }
         }
 
-        else if ( [...click.srcElement.classList].includes('MF-enable') ) {
-            console.log('ENABLING', click.srcElement.getAttribute('data-name'));
+        else if ( [...click.target.classList].includes('MF-enable') ) {
+            console.log('ENABLING', click.target.getAttribute('data-name'));
 
-            click.srcElement.className = "MF-loading";
+            click.target.className = "MF-loading";
 
             if (GM_getValue('TampermonkeyInstalled') && DASHBOARD_URL[getBrowser()] ) {
 
@@ -550,7 +550,7 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
                     };
 
                     displayMessage('Welcome back! Click this bubble to redetect which mods are enabled/disabled','msg_backFromEnable',TM_dashboard.onclose);
-                } else click.srcElement.className = "MF-enable";
+                } else click.target.className = "MF-enable";
             } else if (GM_getValue('TampermonkeyInstalled')) {
 
                 displayMessage('I haven\'t added support for your browser yet, sorry! <p> Go to Tampermonkey\'s <i>dashboard</i> to enable scripts. You can usually get there by clicking its <img onclick="MF_wrongIcon()" src="http://tampermonkey.net/images/icon_grey.png" height=24> icon. <p> Then click this bubble to redetect which mods are enabled/disabled','msg_backFromEnable',function(){
