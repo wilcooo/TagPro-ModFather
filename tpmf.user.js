@@ -2,7 +2,7 @@
 // @name          TagPro ModFather
 // @description   Shows available mods on the TagPro website, Notifies when new Mods are released, And more...
 // @author        Ko
-// @version       0.4.2.beta
+// @version       0.5.0.beta
 // @match         http://*.koalabeast.com/*
 // @match         greasyfork.org/modfather
 // @supportURL    https://www.reddit.com/message/compose/?to=Wilcooo
