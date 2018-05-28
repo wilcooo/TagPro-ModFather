@@ -43,15 +43,6 @@ These two lists are needed to count the number of installs and upvotes.
 
 When hashed, it's impossible to get a full list of players that have upvoted/installed a script. But one can check if a friend has upvoted/installed it. This makes it possible to have a section "Your friends have recently upvoted/installed these scripts"
 
-### Interaction with the database
-The following things should be able via forms or whatever
-
-+ Submit a new author
-+ Submit a new mod
-+ Submit an update to a mod
-+ Edit info of a mod
-+ Edit info of an author
-
 ### Tags
 Scripts may have multiple tags
 
@@ -70,6 +61,22 @@ Scripts may have multiple tags
   + Beta
 
 Tags should be given conservative, an in-game modifier with just settings on the homepage shouldn't also be 'out-game'. A script that puts a statistic on every ball shouldn't be 'visual', because the purpose of the script is being informative. People won't click 'visual' if they want to get statistics scrits. 'Spectating' tag should only be given to scripts specifically made for speccers, not to visual enhancing scripts that also happen to look nice while spectating.
+
+### Interaction with the database
+The following things should be able via forms or whatever
+
++ Submit a new author
++ Submit a new mod
++ Submit an update to a mod
++ Edit info of a mod
++ Edit info of an author
+
+And these things would be nice too
+
++ Upvote a mod / undo an upvote
++ Notice of installing/uninstalling (for the install-count)
++ Comment on a mod
++ Report a mod
 
 ### Hosting options
 **reddit**: scripts should be posted to /r/ModFather in a certain format. They can be edited by only the original poster though :/ upvotes can just be a reddit plugin (maybe). Counting installs/upvotes? No idea
