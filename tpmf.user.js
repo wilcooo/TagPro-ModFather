@@ -2,9 +2,10 @@
 // @name          TagPro ModFather
 // @description   Shows available mods on the TagPro website, Notifies when new Mods are released, And more...
 // @author        Ko
-// @version       0.5.1.beta
+// @version       0.5.2.alpha
 // @match         http://*.koalabeast.com/*
 // @match         greasyfork.org/modfather
+// @match         watball.github.io/chat-macros/
 // @supportURL    https://www.reddit.com/message/compose/?to=Wilcooo
 // @website       https://redd.it/no-post-yet
 // @icon          https://raw.githubusercontent.com/wilcooo/TagPro-ModFather/master/icon.png
@@ -21,13 +22,13 @@
 // ==/UserScript==
 
 
-
+const debug = true;
 
 /* TODO LIST for first release:
 
 Author list
 
-Built-in editor
+Built-in editor?
 
 Replace 'alerts' with 'modals'
 
@@ -54,6 +55,17 @@ Maybe replace 'displayMessage' with 'modals'
 // Constants //initialization
 
 
+// There are still a lot hard-coded strings that need to be put up here.
+const words = {
+    english:{
+        error_xhr: "Something went wrong while getting ModFather data.",
+        error_getDatabase: "Could not grab the data from the database because the following error occured: ",
+        watball_hint: "This mod will not automatically install. To manually do this, you will have to <i>download</i> the script and then drag the downloaded file into your browser window."
+    }
+}
+
+const language = 'english';
+
 
 const DASHBOARD_URL = {
     'chrome' : "chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/options.html#nav=dashboard",
@@ -62,6 +74,11 @@ const DASHBOARD_URL = {
     'safari' : "safari-extension://net.tampermonkey.safari-G3XV72R5TC/b2bc49bd/options.html#nav=dashboard",
     'opera' : "chrome-extension://mfdhdgbonjidekjkjmjaneanmdmpmidf/options.html#nav=dashboard",
 };
+
+
+
+// In case the mod doesn't have an IMAGE
+const filler_image = 'https://i.imgur.com/mrYPBlh.png';
 
 
 var sd_converter = new showdown.Converter();
@@ -116,6 +133,8 @@ function prepareDatabase(data) {
                 // Link authors to mods and vice versa
                 mod.AUTHORS.push(author);
                 author.MODS = (author.MODS || []).concat( mod );
+            } else{
+                console.log(split_authors, author_name, author);
             }
         }
     }
@@ -124,6 +143,8 @@ function prepareDatabase(data) {
 
     return data;
 }
+
+// Defining 'getJSON', using jQuery (faster) or falling back to XHR
 
 getJSON = window.$ && $.getJSON || function(url, data, success) {
 
@@ -136,7 +157,7 @@ getJSON = window.$ && $.getJSON || function(url, data, success) {
                 if (success)
                     success(JSON.parse(xhr.responseText));
             } else {
-                console.error("Something went wrong while getting ModFather data.", xhr);
+                console.error( words[language].error_xhr , xhr);
             }
         }
     };
@@ -172,7 +193,7 @@ var getDatabase = new Promise(function(resolve,reject){
                         } catch(e) {
 
                             var reason = e;
-                            reject('Could not grab the data from the database because the following error occured: '+reason);
+                            reject( words[language].error_getDatabase +reason);
                         }
 
                     });
@@ -183,24 +204,27 @@ var getDatabase = new Promise(function(resolve,reject){
             } catch(e) {
 
                 var reason = e;
-                reject('Could not grab the data from the database because the following error occured: '+reason);
+                reject( words[language].error_getDatabase +reason);
             }
         });
 
     } catch(e) {
 
         var reason = e;
-        reject('Could not grab the data from the database because the following error occured: '+reason);
+        reject( words[language].error_getDatabase +reason);
     }
 });
 
-
-gdat = getDatabase;
+// Making it global (handy for debugging)
+if(debug)gdat = getDatabase;
 
 // GreasyFetching
+// This code runs on greasyfork.org/modfather
+// Only on that domain we can use the following code to find out what scripts are installed and enabled.
 
 if (window.location.hostname.toLowerCase() == 'greasyfork.org' && window.location.pathname.toLowerCase() == '/modfather') {
 
+    // Remove the 404 warning, and replace it with a custom explanation.
     var header, text;
     if (( header = document.getElementById('main-header') )) header.hidden = true;
     if (( text = document.getElementsByClassName('text-content')[0] )) text.innerHTML = "<h1>Don't close this webpage!</h1><p>TagPro ModFather is trying to find out what scripts you have installed. This tab will close automatically within a few seconds.</p>";
@@ -263,6 +287,74 @@ if (window.location.hostname.toLowerCase() == 'greasyfork.org' && window.locatio
     return;
 }
 
+
+if (window.location.hostname.toLowerCase() == 'watball.github.io' && window.location.pathname.toLowerCase() == '/chat-macros/') {
+
+
+
+    /*<div id="myModal" class="modal fade" role="dialog">
+  <div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Modal Header</h4>
+      </div>
+      <div class="modal-body">
+        <p>Some text in the modal.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+data-toggle="modal" data-target="#myModal"*/
+
+
+    var watball_modal = document.createElement('div');
+    watball_modal.id = 'watball-modal';
+    watball_modal.className = 'modal fade';
+    watball_modal.setAttribute('role','dialog');
+    document.body.appendChild(watball_modal);
+
+    var modal_dialog = document.createElement('div');
+    modal_dialog.className = 'modal-dialog';
+    watball_modal.appendChild(modal_dialog);
+
+    var modal_content = document.createElement('div');
+    modal_content.className = 'modal-content';
+    modal_dialog.appendChild(modal_content);
+
+    var modal_header = document.createElement('div');
+    modal_header.className = 'modal-header';
+    modal_header.innerHTML += '<button type="button" class="close" data-dismiss="modal">&times;';
+    modal_header.innerHTML += '<h4 class="modal-title">A message from ModFather';
+    modal_content.appendChild(modal_header);
+
+    var modal_body = document.createElement('div');
+    modal_body.className = 'modal-body';
+    modal_body.innerHTML += '<p>' + words[language].watball_hint;
+    modal_content.appendChild(modal_body);
+
+    var modal_footer = document.createElement('div');
+    modal_footer.className = 'modal-footer';
+    modal_footer.innerHTML += '<button type="button"class="btn btn-default" data-dismiss="modal">Close';
+    modal_content.appendChild(modal_footer);
+
+    document.getElementById('generate').setAttribute('data-toggle','modal')
+    document.getElementById('generate').setAttribute('data-target','#watball-modal')
+}
+
+
+
+
+// This function opens greasyfork.org/modfather, which will make the code above run.
+// When succeeded, the 'done' function is run.
 function greasyFetch(done=null){
     GM_setValue('TampermonkeyInstalled',false);
     var gf_tab = GM_openInTab('https://greasyfork.org/modfather',true);
@@ -470,11 +562,11 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
             mod.LIST = document.createElement('tr');
             mod.LIST.style.height = '50px';
 
-            mod.LIST.innerHTML += '<td> <img width=24 height=24 data-src=' + mod.ICON + '>';
+            mod.LIST.innerHTML += mod.ICON ? '<td> <img width=24 height=24 src=' + mod.ICON + '>' : '<td>';
             mod.LIST.innerHTML += '<td> ? ';
             mod.LIST.innerHTML += '<td> ? ';
             mod.LIST.innerHTML += '<td>' + mod.NAME;
-            mod.LIST.innerHTML += '<td>' + mod.SUMMARY;
+            mod.LIST.innerHTML += '<td class="list-summary">' + mod.SUMMARY;
 
             mod.LIST.innerHTML += '<td>';
             for (let tag of mod.TAGS)
@@ -499,11 +591,11 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
             mod.TILE.firstChild.innerHTML += '<span class="tile-rating" title="Installs and Upvotes">?  ?';
             mod.TILE.firstChild.innerHTML += '<div class="tile-name">' + mod.NAME;
 
-            mod.TILE.firstChild.innerHTML += '<div class="tile-authors"> by ';
+            mod.TILE.firstChild.innerHTML += '<div class="tile-authors">' + (mod.AUTHORS.length ? ' by ': '&nbsp;');
             for (let author of mod.AUTHORS)
                 mod.TILE.firstChild.lastChild.innerHTML += '<span class="sort author-filter" onclick=MF_setAuthorFilter("' + author.NAME + '")><a>' + author.NAME + '</a></span> ';
 
-            mod.TILE.firstChild.innerHTML += '<hr><img data-src="' + mod.IMAGE + '" width=100% class="img-responsive"><hr>';
+            mod.TILE.firstChild.innerHTML += '<hr><div style="background-image:url(' + (mod.IMAGE || filler_image) + ')" class="tile-image"><hr>';
             mod.TILE.firstChild.innerHTML += '<div class="tile-summary">' + mod.SUMMARY;
             mod.TILE.firstChild.innerHTML += '<div class="tile-button">';
 
@@ -797,6 +889,8 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
     styleSheet.insertRule(".tile-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; height:26px; color: #8BC34A; font-size: 22px; font-weight: bold; }");
     styleSheet.insertRule(".tile-authors { text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }");
 
+    styleSheet.insertRule(".tile-image { padding-top:75%; background-size:contain; background-repeat:no-repeat; background-position:center; }");
+
     styleSheet.insertRule(".tile-summary { position:relative; font-size:16px; height:40px; overflow:hidden; }");
     styleSheet.insertRule(".tile-summary:after { position:absolute; content:''; padding-right:150px; bottom:0; right:0; wdith:100%; height:20px; background:linear-gradient(to right, #38383800, #383838FF 80% );  }");
 
@@ -808,6 +902,9 @@ if (window.location.pathname.toLowerCase() == '/modfather') {
 
     // Highlighting the table rows
     styleSheet.insertRule("#list-tbody tr:hover { cursor:help; box-shadow: rgba(100, 200, 100, 0.4) 0 0 15px 5px  inset;  }");
+
+    // More table CSS
+    styleSheet.insertRule(".list-summary { font-size:16px; }");
 
 
 
@@ -977,15 +1074,15 @@ function update_sort_filter() {
                 list_tbody.appendChild(mod.LIST);
                 mod.LIST.getElementsByClassName("list-button")[0].appendChild( mod.BUTTON );
 
-                let img = mod.LIST.getElementsByTagName("img")[0];
-                img.src = img.getAttribute('data-src');
+                //let img = mod.LIST.getElementsByTagName("img")[0];
+                //img.src = img.getAttribute('data-src');
             }
             if (view == 'tile') {
                 tile_list.appendChild(mod.TILE);
                 mod.TILE.getElementsByClassName("tile-button")[0].appendChild( mod.BUTTON );
 
-                let img = mod.TILE.getElementsByTagName("img")[0];
-                img.src = img.getAttribute('data-src');
+                //let img = mod.TILE.getElementsByTagName("img")[0];
+                //img.src = img.getAttribute('data-src');
             }
         }
 
